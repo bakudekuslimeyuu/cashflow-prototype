@@ -1,6 +1,7 @@
 import { money, days, nextBill, payoutToCover, pocketsTotal, accountTotal } from '../lib/cashflow.js';
 import { TxList } from './TxList.jsx';
 import Icon from './Icon.jsx';
+import Money from './Money.jsx';
 
 const greeting = () => {
   const h = new Date().getHours();
@@ -23,7 +24,7 @@ export default function HomeScreen({ state, onOpenCashFlow, onAdd, onSend, onSca
   else reminder = { icon: 'info', title: `Next: ${nb.name} in ${days(nb.due)}`, text: `${money(nb.amount - nb.saved)} still to set aside.` };
 
   return (
-    <div className="screen">
+    <div className="screen enter-left">
       <div className="top">
         <div className="word">GXS<small>concept</small></div>
         <div className="icons">
@@ -50,7 +51,7 @@ export default function HomeScreen({ state, onOpenCashFlow, onAdd, onSend, onSca
         <div className="acct">
           <div>
             <div className="cap">GXS Savings Account</div>
-            <div className="bal num">{money(accountTotal(state))}</div>
+            <div className="bal num"><Money id="total" value={accountTotal(state)} /></div>
           </div>
           <button className="dots" aria-label="More options" onClick={() => onExtra('More options')}><Icon name="more" /></button>
         </div>
@@ -58,13 +59,13 @@ export default function HomeScreen({ state, onOpenCashFlow, onAdd, onSend, onSca
           <div className="tile">
             <div className="ti"><Icon name="wallet" size={19} /></div>
             <div className="n">Main Account</div>
-            <div className="v num">{money(state.spendable)}</div>
+            <div className="v num"><Money id="spend" value={state.spendable} /></div>
             <div className="s">Safe to spend</div>
           </div>
           <div className="tile new" role="button" tabIndex={0} onClick={onOpenCashFlow}>
             <div className="ti l"><Icon name="pocket" size={19} /></div>
             <div className="n">CashFlow<span className="badge">NEW</span></div>
-            <div className="v num">{money(pocketsTotal(state))}</div>
+            <div className="v num"><Money id="pockets" value={pocketsTotal(state)} /></div>
             <div className="s">{noBills ? 'No bills coming up' : nb ? `${nb.name} in ${days(nb.due)}` : 'All bills covered'}</div>
           </div>
         </div>

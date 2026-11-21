@@ -2,6 +2,7 @@ import { money, days, nextBill, payoutToCover, pocketsTotal, billsSaved } from '
 import { LockNote } from './Sheet.jsx';
 import { TxList } from './TxList.jsx';
 import Icon from './Icon.jsx';
+import Money from './Money.jsx';
 
 // Calendar chip for a bill due in n days.
 function DateChip({ inDays }) {
@@ -33,7 +34,7 @@ export default function CashFlowScreen({ state, onBack, onMove, onRule, onExtra 
   }
 
   return (
-    <div className="screen">
+    <div className="screen enter-right">
       <div className="head">
         <button className="ib" onClick={onBack} aria-label="Back"><Icon name="back" size={22} /></button>
         <div className="t">CashFlow</div>
@@ -42,7 +43,7 @@ export default function CashFlowScreen({ state, onBack, onMove, onRule, onExtra 
       <div className="wrap">
         <div className="card">
           <div className="cap">Safe to spend in your Main Account</div>
-          <div className="big num" style={{ fontSize: 30, fontWeight: 700, marginTop: 3 }}>{money(state.spendable)}</div>
+          <div className="big num" style={{ fontSize: 30, fontWeight: 700, marginTop: 3 }}><Money id="spend" value={state.spendable} /></div>
           <div className="sub">
             {state.spendable < state.minimum
               ? `Below your ${money(state.minimum)} minimum, so new money stays spendable until you're back above it.`
@@ -61,7 +62,7 @@ export default function CashFlowScreen({ state, onBack, onMove, onRule, onExtra 
         </div>
         <div className="gap" />
         <div className="card">
-          <div className="sum"><b>Bill Pockets</b><span className="muted num">{money(billsSaved(state))} set aside</span></div>
+          <div className="sum"><b>Bill Pockets</b><span className="muted num"><Money id="bills" value={billsSaved(state)} /> set aside</span></div>
           {state.bills.length === 0 && <div className="sub">No bills coming up.</div>}
           {[...state.bills].sort((a, b) => a.due - b.due).map((b) => {
             const pct = Math.min(100, (b.saved / b.amount) * 100);
@@ -86,7 +87,7 @@ export default function CashFlowScreen({ state, onBack, onMove, onRule, onExtra 
         </div>
         <div className="gap" />
         <div className="card" style={{ cursor: 'pointer' }} role="button" tabIndex={0} onClick={() => onMove('emergency', 'back')}>
-          <div className="sum"><b>Emergency Pocket</b><span className="num" style={{ fontWeight: 700 }}>{money(state.emergency)}</span></div>
+          <div className="sum"><b>Emergency Pocket</b><span className="num" style={{ fontWeight: 700 }}><Money id="emergency" value={state.emergency} /></span></div>
           <LockNote />
           <div className="link" style={{ marginTop: 8 }}>Move money ›</div>
         </div>

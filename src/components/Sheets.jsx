@@ -38,7 +38,7 @@ export function BreakdownSheet({ result: res, source, minimum, share, onClose, o
         )}
       </div>
       <LockNote />
-      <div className="btns">
+      <div className="act btns">
         <button className="btn o" onClick={onEditRule}>Change my rule</button>
         <button className="btn" onClick={onClose}>Got it</button>
       </div>
@@ -74,8 +74,10 @@ export function AddMoneySheet({ state, onClose, onConfirm }) {
       <input type="number" min="0" step="1" inputMode="decimal" placeholder="Or type an amount"
         value={amt} onChange={(e) => setAmt(e.target.value)} />
       <div className="hint">{hint}</div>
-      <button className="btn" style={{ marginTop: 16, ...disabledStyle(!(a > 0)) }} disabled={!(a > 0)}
-        onClick={() => onConfirm(a, source)}>Add money</button>
+      <div className="act">
+        <button className="btn" style={disabledStyle(!(a > 0))} disabled={!(a > 0)}
+          onClick={() => onConfirm(a, source)}>Add money</button>
+      </div>
     </Sheet>
   );
 }
@@ -90,22 +92,19 @@ export function MoveSheet({ state, preset, presetDir, onClose, onConfirm }) {
   const avail = moveAvailable(state, pot, dir);
   const billFull = dir === 'into' && pot !== 'emergency' && roomInPot(state, pot) === 0;
   const ok = a > 0 && a <= avail;
-  const main = <span style={{ whiteSpace: 'nowrap' }}>GXS Main Account <span className="muted">{MAIN_ACCOUNT_MASKED}</span></span>;
   const name = potName(state, pot);
   return (
     <Sheet onClose={onClose}>
       <h3>Move money</h3>
-      <div className="lead">Your pockets and Main Account are all inside your GXS Savings Account. Moving is instant.</div>
       <Seg cols={2} value={dir} onChange={setDir}
         options={[{ value: 'back', label: 'Back to Main Account' }, { value: 'into', label: 'Into a pocket' }]} />
-      <div className="split" style={{ marginTop: 14 }}>
-        <div className="r"><span className="muted">From</span><span>{dir === 'back' ? name : main}</span></div>
-        <div className="r"><span className="muted">To</span><span>{dir === 'back' ? main : name}</span></div>
-      </div>
-      <label className="f">Pocket</label>
+      <label className="f">{dir === 'back' ? 'From pocket' : 'To pocket'}</label>
       <select value={pot} onChange={(e) => setPot(e.target.value)}>
         {pots.map((p) => <option key={p} value={p}>{potName(state, p)}</option>)}
       </select>
+      <div className="hint" style={{ marginTop: 6 }}>
+        {dir === 'back' ? 'To' : 'From'} GXS Main Account {MAIN_ACCOUNT_MASKED}. Instant, same account.
+      </div>
       <label className="f">Amount (S$)</label>
       <input type="number" min="0" step="1" inputMode="decimal" placeholder="0" value={amt} onChange={(e) => setAmt(e.target.value)} />
       <div className="hint">
@@ -115,10 +114,9 @@ export function MoveSheet({ state, preset, presetDir, onClose, onConfirm }) {
           : pot === 'emergency' || avail === state.spendable ? `Available in Main Account: ${money(avail)}`
           : `${name} needs ${money(avail)} more to be full.`}
       </div>
-      <button className="btn" style={{ marginTop: 16, ...disabledStyle(!ok) }} disabled={!ok}
-        onClick={() => onConfirm(pot, a, dir)}>Move</button>
-      <div className="hint" style={{ textAlign: 'center', marginTop: 12 }}>
-        Moving is instant and stays inside your GXS Savings Account.
+      <div className="act">
+        <button className="btn" style={disabledStyle(!ok)} disabled={!ok}
+          onClick={() => onConfirm(pot, a, dir)}>Move</button>
       </div>
     </Sheet>
   );
@@ -147,7 +145,9 @@ export function RuleSheet({ state, onClose, onSave }) {
       <div className="why" style={{ marginTop: 12 }}>
         Example: a <b>{money(ex)}</b> payout today keeps {money(ex - sa)} in your Main Account and sets aside {money(sa)}.
       </div>
-      <button className="btn" style={{ marginTop: 16 }} onClick={() => onSave(min, share)}>Save rule</button>
+      <div className="act">
+        <button className="btn" onClick={() => onSave(min, share)}>Save rule</button>
+      </div>
     </Sheet>
   );
 }

@@ -151,3 +151,37 @@ button.pk{display:grid;grid-template-columns:44px 1fr;gap:12px;align-items:start
 .okt{color:var(--green)}
 .wt{color:var(--warn)}
 .badge{background:#c93a63}
+
+/* Popup buttons stay pinned to the bottom so nobody has to scroll to find them */
+.sheet .act{position:sticky;bottom:-26px;margin:14px -18px -26px;padding:12px 18px 26px;background:var(--bg2);border-top:1px solid var(--line)}
+.sheet .act.btns{margin-top:14px}
+
+/* ---------- Motion: only when something happens, and off for "reduce motion" ---------- */
+@media (prefers-reduced-motion: no-preference){
+  /* Screens slide in the direction you're going */
+  .screen.enter-right{animation:inRight .32s cubic-bezier(.2,.8,.2,1)}
+  .screen.enter-left{animation:inLeft .32s cubic-bezier(.2,.8,.2,1)}
+  @keyframes inRight{from{transform:translateX(28px);opacity:0}to{transform:none;opacity:1}}
+  @keyframes inLeft{from{transform:translateX(-28px);opacity:0}to{transform:none;opacity:1}}
+
+  /* Popups glide up over a fading backdrop */
+  .scrim{animation:fade .22s ease-out}
+  .sheet{animation:sheetUp .34s cubic-bezier(.2,.9,.25,1)}
+  @keyframes fade{from{background:rgba(5,3,13,0)}}
+  @keyframes sheetUp{from{transform:translateY(100%)}to{transform:none}}
+
+  /* Bars fill in instead of popping */
+  .bar i{animation:fill .8s cubic-bezier(.2,.8,.2,1) .15s backwards;transform-origin:left}
+  .stack{animation:reveal .8s cubic-bezier(.2,.8,.2,1) .2s backwards}
+  @keyframes fill{from{transform:scaleX(0)}}
+  @keyframes reveal{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}
+  .bar i{transition:width .6s cubic-bezier(.2,.8,.2,1)}
+
+  /* Taps press in slightly */
+  .actions>button .c,.btnc,.tile,.remind,.btn,.seg button,.demo .grid button,button.pk,.stepper button{transition:transform .12s ease,filter .12s ease}
+  .actions>button:active .c,.btnc:active,.tile[role=button]:active,.remind:active,.btn:not(:disabled):active,.seg button:active,.demo .grid button:active,button.pk:active,.stepper button:active{transform:scale(.96)}
+  .btn:not(:disabled):hover,.actions>button:hover .c{filter:brightness(1.08)}
+
+  /* Toast eases in */
+  .toast{transition:opacity .25s ease,transform .3s cubic-bezier(.2,.8,.2,1)}
+}
