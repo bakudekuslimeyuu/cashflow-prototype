@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   initialState, allocate, applyPayout, payoutToCover, moveMoney, sendMoney, nextDay, accountTotal,
-  money, days, nextBill, setRule, extraMoney, moveAvailable, roomInPot,
+  money, days, nextBill, setRule, extraMoney, moveAvailable, roomInPot, r2, potName, potBalance,
 } from './cashflow.js';
 
 test('S$120 payout matches the report worked example', () => {
@@ -249,4 +249,220 @@ test('20. two bills due the same day are both paid, nothing touched', () => {
   assert.ok(paid.every((b) => b.short === 0));
   assert.equal(next.spendable, 130);
   assert.equal(next.bills.length, 0);
+});
+
+// ---------------------------------------------------------------------------
+// Round 3: rounding, immutability, activity log, sequences, pockets, bill days.
+// ---------------------------------------------------------------------------
+
+test('21. r2 rounds to the nearest cent', () => {
+  assert.equal(r2(1.239), 1.24);
+  assert.equal(r2(1.231), 1.23);
+  assert.equal(r2(10), 10);
+});
+
+test('22. money handles millions and rounds up into the next thousand', () => {
+  assert.equal(money(1234567.891), 'S$1,234,567.89');
+  assert.equal(money(999.999), 'S$1,000.00');
+});
+
+test('23. every reset starts from a fresh, separate state', () => {
+  const a = initialState();
+  a.bills[0].saved = 99;
+  a.activity.push({ id: 9 });
+  const b = initialState();
+  assert.equal(b.bills[0].saved, 0);
+  assert.equal(b.activity.length, 1);
+});
+
+test('24. previewing a split does not change the wallet', () => {
+  const s = initialState();
+  const copy = JSON.parse(JSON.stringify(s));
+  allocate(s, 120);
+  assert.deepEqual(s, copy);
+});
+
+test('25. applying a payout leaves the old state untouched', () => {
+  const s = initialState();
+  const copy = JSON.parse(JSON.stringify(s));
+  applyPayout(s, 120);
+  assert.deepEqual(s, copy);
+});
+
+test('26. activity ids keep counting up', () => {
+  const s = applyPayout(applyPayout(initialState(), 120), 40);
+  assert.deepEqual(s.activity.slice(0, 2).map((a) => a.id), [2, 1]);
+  assert.equal(s.nextId, 3);
+});
+
+test('27. payout activity spells out the split', () => {
+  const s = applyPayout(initialState(), 120);
+  assert.equal(s.activity[0].detail, 'S$70.00 spendable · S$30.00 to bills · S$20.00 to emergency');
+});
+
+test('28. payout below the minimum says it was all kept', () => {
+  const s = applyPayout(initialState(), 10);
+  assert.equal(s.activity[0].detail, 'All kept spendable (below your S$150.00 minimum)');
+  assert.equal(s.spendable, 140);
+});
+
+test('29. two payouts in a row: S$120 then S$40', () => {
+  const s = applyPayout(applyPayout(initialState(), 120), 40);
+  assert.equal(s.spendable, 220);
+  assert.equal(s.emergency, 60);
+  assert.ok(s.bills.every((b) => b.saved === b.amount));
+  assert.equal(accountTotal(s), 310);
+});
+
+test('30. payout into an empty Main Account keeps up to the minimum first', () => {
+  const r = allocate({ ...initialState(), spendable: 0 }, 200);
+  assert.equal(r.extra, 50);
+  assert.deepEqual(r.toBills.map((b) => [b.id, b.amount]), [['phone', 10], ['insure', 15]]);
+  assert.equal(r.toEmergency, 0);
+  assert.equal(r.keep, 175);
+});
+
+test('31. every split adds up to the payout and nothing is negative', () => {
+  for (const amt of [0.01, 7.5, 19.99, 20, 61, 120, 999.99]) {
+    const r = allocate(initialState(), amt);
+    assert.equal(r2(r.keep + r.billsSum + r.toEmergency), amt, `payout ${amt}`);
+    assert.ok(r.keep >= 0 && r.billsSum >= 0 && r.toEmergency >= 0, `payout ${amt}`);
+  }
+});
+
+test('32. no payout is needed for a bill that is already covered', () => {
+  const s = withBill(initialState(), 'phone', { saved: 10 });
+  assert.equal(payoutToCover(s, s.bills[0]), 0);
+});
+
+test('33. warning amount at a 100% share below the minimum', () => {
+  const s = setRule(initialState(), 150, 1);
+  const p = payoutToCover(s, s.bills[0]);
+  assert.equal(p, 30);
+  assert.equal(applyPayout(s, p).bills[0].saved, 10);
+});
+
+test('34. a payout just under the warning amount does not fully cover the bill', () => {
+  const s = initialState(); // warning says S$40
+  assert.ok(applyPayout(s, 39.98).bills[0].saved < 10);
+});
+
+test('35. extra money is never negative and never more than the payout', () => {
+  for (const spendable of [0, 100, 150, 200]) {
+    for (const payout of [1, 50, 300]) {
+      const e = extraMoney({ ...initialState(), spendable }, payout);
+      assert.ok(e >= 0 && e <= payout, `spendable ${spendable}, payout ${payout}`);
+    }
+  }
+});
+
+test('36. pocket names', () => {
+  const s = initialState();
+  assert.equal(potName(s, 'emergency'), 'Emergency Pocket');
+  assert.equal(potName(s, 'phone'), 'Phone bill Pocket');
+});
+
+test('37. pocket balances', () => {
+  const s = withBill(initialState(), 'insure', { saved: 7 });
+  assert.equal(potBalance(s, 'emergency'), 20);
+  assert.equal(potBalance(s, 'insure'), 7);
+});
+
+test('38. an unknown pocket has no room and nothing to move', () => {
+  const s = initialState();
+  assert.equal(roomInPot(s, 'nope'), 0);
+  assert.equal(moveAvailable(s, 'nope', 'into'), 0);
+  assert.equal(moveMoney(s, 'nope', 5, 'into'), s);
+});
+
+test('39. moving into a bill pocket is logged', () => {
+  const s = moveMoney(initialState(), 'phone', 6, 'into');
+  assert.equal(s.bills[0].saved, 6);
+  assert.equal(s.spendable, 124);
+  assert.equal(s.activity[0].title, 'Moved into pocket');
+  assert.equal(s.activity[0].detail, 'To Phone bill Pocket');
+});
+
+test('40. cannot take more out of a bill pocket than it holds', () => {
+  const s = withBill(initialState(), 'phone', { saved: 4 });
+  assert.equal(moveMoney(s, 'phone', 5, 'back'), s);
+  assert.equal(moveMoney(s, 'phone', 4, 'back').spendable, 134);
+});
+
+test('41. filling a bill in two moves, then it is full', () => {
+  let s = moveMoney(initialState(), 'phone', 4, 'into');
+  s = moveMoney(s, 'phone', 6, 'into');
+  assert.equal(s.bills[0].saved, 10);
+  assert.equal(moveMoney(s, 'phone', 0.01, 'into'), s);
+});
+
+test('42. filling a bill by hand moves the warning to the next bill', () => {
+  const s = moveMoney(initialState(), 'phone', 10, 'into');
+  assert.equal(nextBill(s).id, 'insure');
+});
+
+test('43. sending money is logged', () => {
+  const s = sendMoney(initialState(), 12.5, 'Hawker centre');
+  const a = s.activity[0];
+  assert.deepEqual(
+    { title: a.title, detail: a.detail, amount: a.amount, sign: a.sign },
+    { title: 'Sent to Hawker centre', detail: 'From Main Account', amount: 12.5, sign: '−' }
+  );
+});
+
+test('44. sending money never touches the pockets', () => {
+  const s0 = withBill(initialState(), 'phone', { saved: 10 });
+  const s = sendMoney(s0, 100, 'x');
+  assert.equal(s.emergency, s0.emergency);
+  assert.deepEqual(s.bills, s0.bills);
+});
+
+test('45. changing the rule never moves money', () => {
+  const s0 = applyPayout(initialState(), 120);
+  const s = setRule(s0, 50, 0.75);
+  assert.equal(s.spendable, s0.spendable);
+  assert.equal(s.emergency, s0.emergency);
+  assert.deepEqual(s.bills, s0.bills);
+  assert.equal(s.minimum, 50);
+  assert.equal(s.share, 0.75);
+});
+
+test('46. a lower minimum changes the next split', () => {
+  const r = allocate(setRule(initialState(), 100, 0.5), 40);
+  assert.equal(r.extra, 40);
+  assert.deepEqual(r.toBills.map((b) => [b.id, b.amount]), [['phone', 10], ['insure', 10]]);
+  assert.equal(r.keep, 20);
+});
+
+test('47. a fully saved bill is paid from its pocket only', () => {
+  let s = withBill(initialState(), 'phone', { saved: 10 });
+  for (let i = 0; i < 4; i++) s = nextDay(s).next;
+  assert.equal(s.activity[0].title, 'Phone bill paid');
+  assert.equal(s.activity[0].detail, 'Paid in full from its pocket');
+  assert.equal(s.spendable, 130);
+});
+
+test('48. a bill with nothing saved and an empty Main Account is not paid', () => {
+  let s = { ...initialState(), spendable: 0 };
+  let paid;
+  for (let i = 0; i < 4; i++) ({ next: s, paid } = nextDay(s));
+  assert.equal(s.activity[0].title, 'Phone bill not paid');
+  assert.equal(s.activity[0].sign, '');
+  assert.equal(s.activity[0].amount, 0);
+  assert.equal(paid[0].short, 10);
+});
+
+test('49. extra in an overfilled pocket goes back to the Main Account', () => {
+  let s = withBill(initialState(), 'phone', { saved: 15 });
+  for (let i = 0; i < 4; i++) s = nextDay(s).next;
+  assert.equal(s.spendable, 135);
+  assert.equal(accountTotal(s), 155);
+});
+
+test('50. nine days with no payouts: both bills come out of the Main Account', () => {
+  let s = initialState();
+  for (let i = 0; i < 9; i++) s = nextDay(s).next;
+  assert.equal(s.spendable, 100);
+  assert.equal(s.emergency, 20);
+  assert.equal(s.bills.length, 0);
 });
