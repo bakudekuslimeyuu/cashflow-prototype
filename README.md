@@ -9,7 +9,7 @@ A clickable prototype of **CashFlow**, a bill-readiness feature embedded in a di
 ## The rule
 
 1. Keep a minimum in the Main Account to spend (default S$150).
-2. Anything above it is **extra money**. A share of it is set aside (default 50%).
+2. The part of each payout that takes the Main Account above the minimum is **extra money**. A share of it is set aside (default 50%). Money already in the account is never moved.
 3. Bills are filled first, earliest due date first, only up to what's still needed.
 4. Whatever is left goes to the Emergency Pocket.
 

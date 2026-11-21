@@ -31,10 +31,10 @@ export function BreakdownSheet({ result: res, source, minimum, share, onClose, o
         )}
       </div>
       <div className="why">
-        {aside > 0 ? (
-          <>You had {money(res.before)}. Now you have {money(res.total)}. {res.extra === res.payout ? 'All' : money(res.extra)} of this payout{res.extra === res.payout ? ' is' : ' lands'} above your {money(minimum)} minimum. That's your <b>extra money</b>. {Math.round(share * 100)}% of it ({money(aside)}) went into your pockets, bills first.</>
+        {res.extra > 0 ? (
+          <>Your Main Account had {money(res.before)}. With this payout that's {money(res.total)}. {res.extra === res.payout ? <>All of this payout is</> : <>{money(res.extra)} of this payout is</>} above your {money(minimum)} minimum. That's your <b>extra money</b>. {Math.round(share * 100)}% of it ({money(aside)}) went into your pockets, bills first.</>
         ) : (
-          <>You now have {money(res.total)}, which isn't above your {money(minimum)} minimum, so it all stays spendable today.</>
+          <>Your Main Account now has {money(res.total)}, which isn't above your {money(minimum)} minimum, so it all stays spendable.</>
         )}
       </div>
       <LockNote />
@@ -55,7 +55,7 @@ export function AddMoneySheet({ state, onClose, onConfirm }) {
   if (a > 0) {
     const r = allocate(state, a);
     const aside = r2(r.billsSum + r.toEmergency);
-    hint = aside > 0
+    hint = r.extra > 0
       ? `With your rule: ${money(r.keep)} stays spendable, ${money(aside)} goes to your pockets.`
       : `With your rule: all ${money(a)} stays spendable (you're below your ${money(state.minimum)} minimum).`;
   }
@@ -99,8 +99,12 @@ export function SendMoneySheet({ state, onClose, onConfirm, onMoveBack }) {
       <input type="number" min="0" step="1" inputMode="decimal" placeholder="0" value={amt} onChange={(e) => setAmt(e.target.value)} />
       <div className="hint">
         {over ? (
-          <>You have {money(state.spendable)} safe to spend. {money(pocketsTotal(state))} is in your pockets:{' '}
-            <button className="qlink" onClick={onMoveBack}>move some back first</button>.</>
+          pocketsTotal(state) > 0 ? (
+            <>You have {money(state.spendable)} safe to spend. {money(pocketsTotal(state))} is in your pockets:{' '}
+              <button className="qlink" onClick={onMoveBack}>move some back first</button>.</>
+          ) : (
+            <>You only have {money(state.spendable)} safe to spend, and your pockets are empty.</>
+          )
         ) : `Safe to spend: ${money(state.spendable)}`}
       </div>
       <button className="btn" style={{ marginTop: 16, ...disabledStyle(!ok) }} disabled={!ok}
@@ -172,7 +176,7 @@ export function RuleSheet({ state, onClose, onSave }) {
       <label className="f">Set aside this share of extra money</label>
       <Seg value={share} onChange={setShare}
         options={[0.25, 0.5, 0.75, 1].map((v) => ({ value: v, label: v * 100 + '%' }))} />
-      <div className="hint">"Extra money" is anything above the amount you keep to spend. Bills are filled first, earliest due date first. Anything left goes to your Emergency Pocket.</div>
+      <div className="hint">"Extra money" is the part of each new payout that takes your Main Account above the amount you keep to spend. Money already there is never moved. Bills are filled first, earliest due date first. Anything left goes to your Emergency Pocket.</div>
       <div className="why" style={{ marginTop: 12 }}>
         Example: a <b>{money(ex)}</b> payout today keeps {money(ex - sa)} in your Main Account and sets aside {money(sa)}.
       </div>

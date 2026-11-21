@@ -1,21 +1,22 @@
-import { money, nextBill, payoutToCover, pocketsTotal, billsSaved } from '../lib/cashflow.js';
+import { money, days, nextBill, payoutToCover, pocketsTotal, billsSaved } from '../lib/cashflow.js';
 import { LockNote } from './Sheet.jsx';
 import { TxList } from './TxList.jsx';
 
 // The CashFlow feature screen inside the GXS app.
-export default function CashFlowScreen({ state, onBack, onMove, onRule }) {
+export default function CashFlowScreen({ state, onBack, onMove, onRule, onExtra }) {
   const nb = nextBill(state);
   const pockets = pocketsTotal(state);
 
   let warn;
-  if (!nb) warn = { ok: true, icon: '✓', title: "You're ready for your bills", text: 'Everything due in the next two weeks is set aside.' };
+  if (state.bills.length === 0) warn = { ok: true, icon: '✓', title: 'No bills coming up', text: 'Nothing needs setting aside right now.' };
+  else if (!nb) warn = { ok: true, icon: '✓', title: "You're ready for your bills", text: 'Every upcoming bill is fully set aside.' };
   else {
     const short = nb.amount - nb.saved;
     const p = payoutToCover(state, nb);
     warn =
       nb.due <= 5
-        ? { ok: false, icon: '⚠️', title: `${nb.name} is ${money(short)} short, due in ${nb.due} days`, text: `A payout of ${money(p)} or more covers it. Or set it aside now.` }
-        : { ok: true, icon: 'ℹ️', title: `Next: ${nb.name} in ${nb.due} days`, text: `${money(short)} still to set aside. A payout of ${money(p)} or more covers it.` };
+        ? { ok: false, icon: '⚠️', title: `${nb.name} is ${money(short)} short, due in ${days(nb.due)}`, text: `A payout of ${money(p)} or more covers it. Or set it aside now with Move money.` }
+        : { ok: true, icon: 'ℹ️', title: `Next: ${nb.name} in ${days(nb.due)}`, text: `${money(short)} still to set aside. A payout of ${money(p)} or more covers it.` };
   }
 
   return (
@@ -23,7 +24,7 @@ export default function CashFlowScreen({ state, onBack, onMove, onRule }) {
       <div className="head">
         <button className="ib" onClick={onBack} aria-label="Back">‹</button>
         <div className="t">CashFlow</div>
-        <span className="ib bell" style={{ fontSize: 18 }}>🔔︎</span>
+        <span className="ib bell" style={{ fontSize: 18, cursor: 'pointer' }} onClick={() => onExtra('Notifications')}>🔔︎</span>
       </div>
       <div className="wrap">
         <div className="card">
@@ -31,7 +32,7 @@ export default function CashFlowScreen({ state, onBack, onMove, onRule }) {
           <div className="big num" style={{ fontSize: 30, fontWeight: 700, marginTop: 3 }}>{money(state.spendable)}</div>
           <div className="sub">
             {state.spendable < state.minimum
-              ? `Below your ${money(state.minimum)} minimum, so nothing is set aside until you earn more.`
+              ? `Below your ${money(state.minimum)} minimum, so new money stays spendable until you're back above it.`
               : `${money(pockets)} is set aside in your pockets below. Same account, same bank.`}
           </div>
         </div>
@@ -57,7 +58,7 @@ export default function CashFlowScreen({ state, onBack, onMove, onRule }) {
                 onClick={() => onMove(b.id, b.saved > 0 ? 'back' : 'into')}>
                 <div className="r"><span>{b.name}</span><span className="num">{money(b.saved)} / {money(b.amount)}</span></div>
                 <div className={'bar' + (late ? ' w' : '')}><i style={{ width: pct + '%' }} /></div>
-                <div className="m"><span>{Math.round(pct)}%</span><span>{b.saved >= b.amount ? 'Covered ✓' : `Due in ${b.due} days`}</span></div>
+                <div className="m"><span>{Math.floor(pct)}%</span><span>{b.saved >= b.amount ? `Covered ✓ · due in ${days(b.due)}` : `Due in ${days(b.due)}`}</span></div>
               </div>
             );
           })}

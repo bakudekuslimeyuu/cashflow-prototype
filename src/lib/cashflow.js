@@ -11,6 +11,9 @@ export const r2 = (n) => Math.round(n * 100) / 100;
 export const money = (n) =>
   'S$' + r2(n).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 
+// "1 day" / "4 days"
+export const days = (n) => `${n} ${n === 1 ? 'day' : 'days'}`;
+
 export const MAIN_ACCOUNT_MASKED = '•••• 123-4'; // made-up number for the prototype
 
 export function initialState() {
@@ -27,7 +30,7 @@ export function initialState() {
       {
         id: 0,
         title: 'Grab earnings cash-out',
-        detail: 'Yesterday · all kept spendable (below your S$150 minimum)',
+        detail: 'Yesterday · all kept spendable (below your S$150.00 minimum)',
         amount: 38,
         sign: '+',
       },
@@ -95,7 +98,6 @@ export function applyPayout(s, amount, source = 'Grab earnings cash-out') {
     const hit = res.toBills.find((x) => x.id === b.id);
     return hit ? { ...b, saved: r2(b.saved + hit.amount) } : b;
   });
-  const aside = r2(res.billsSum + res.toEmergency);
   const next = {
     ...s,
     spendable: r2(s.spendable + res.keep),
@@ -107,7 +109,7 @@ export function applyPayout(s, amount, source = 'Grab earnings cash-out') {
     sign: '+',
     amount,
     detail:
-      aside > 0
+      res.extra > 0
         ? `${money(res.keep)} spendable · ${money(res.billsSum)} to bills · ${money(res.toEmergency)} to emergency`
         : `All kept spendable (below your ${money(s.minimum)} minimum)`,
   });
@@ -186,7 +188,7 @@ export function nextDay(s) {
             ? `${money(fromPot)} from pocket, ${money(fromMain)} from Main Account`
             : 'Paid in full from its pocket',
       amount: amountPaid,
-      sign: '−',
+      sign: amountPaid > 0 ? '−' : '',
     });
     paid.push({ ...b, short });
   }
