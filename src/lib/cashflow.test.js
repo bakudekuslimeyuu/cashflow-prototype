@@ -72,6 +72,22 @@ test('Main Account never goes below zero when a bill is due', () => {
   assert.equal(paid[0].short, 6);
 });
 
+test('a bill pocket cannot be filled past its bill', () => {
+  const s = initialState(); // Phone bill S$10, nothing saved
+  assert.equal(moveMoney(s, 'phone', 15, 'into'), s);
+  const ok = moveMoney(s, 'phone', 10, 'into');
+  assert.equal(ok.bills.find((b) => b.id === 'phone').saved, 10);
+  assert.equal(moveMoney(ok, 'phone', 1, 'into'), ok);
+});
+
+test('no money vanishes when an overfilled pocket pays its bill', () => {
+  let s = initialState();
+  s = { ...s, bills: s.bills.map((b) => (b.id === 'phone' ? { ...b, saved: 15 } : b)) };
+  const total = accountTotal(s);
+  for (let i = 0; i < 4; i++) s = nextDay(s).next;
+  assert.equal(accountTotal(s), total - 10);
+});
+
 test('a bill is paid from its pocket when due', () => {
   let s = applyPayout(initialState(), 120);
   for (let i = 0; i < 4; i++) s = nextDay(s).next;

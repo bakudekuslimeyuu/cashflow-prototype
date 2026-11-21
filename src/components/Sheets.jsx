@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import Sheet, { Seg, LockNote } from './Sheet.jsx';
 import {
-  money, r2, allocate, extraMoney, potBalance, potName, pocketsTotal, MAIN_ACCOUNT_MASKED,
+  money, r2, allocate, extraMoney, moveAvailable, roomInPot, potName, pocketsTotal, MAIN_ACCOUNT_MASKED,
 } from '../lib/cashflow.js';
 
 const num = (v) => r2(Number(v || 0));
@@ -116,7 +116,8 @@ export function MoveSheet({ state, preset, presetDir, onClose, onConfirm }) {
   const [pot, setPot] = useState(preset && pots.includes(preset) ? preset : 'emergency');
   const [amt, setAmt] = useState('');
   const a = num(amt);
-  const avail = dir === 'back' ? potBalance(state, pot) : state.spendable;
+  const avail = moveAvailable(state, pot, dir);
+  const billFull = dir === 'into' && pot !== 'emergency' && roomInPot(state, pot) === 0;
   const ok = a > 0 && a <= avail;
   const main = <span style={{ whiteSpace: 'nowrap' }}>GXS Main Account <span className="muted">{MAIN_ACCOUNT_MASKED}</span></span>;
   const name = potName(state, pot);
@@ -137,8 +138,11 @@ export function MoveSheet({ state, preset, presetDir, onClose, onConfirm }) {
       <label className="f">Amount (S$)</label>
       <input type="number" min="0" step="1" inputMode="decimal" placeholder="0" value={amt} onChange={(e) => setAmt(e.target.value)} />
       <div className="hint">
-        {a > avail ? `You only have ${money(avail)} available for this.`
-          : `${dir === 'back' ? `Available in ${name}` : 'Available in Main Account'}: ${money(avail)}`}
+        {billFull ? `${name} is already full.`
+          : a > avail ? `You can move up to ${money(avail)} here.`
+          : dir === 'back' ? `Available in ${name}: ${money(avail)}`
+          : pot === 'emergency' || avail === state.spendable ? `Available in Main Account: ${money(avail)}`
+          : `${name} needs ${money(avail)} more to be full.`}
       </div>
       <button className="btn" style={{ marginTop: 16, ...disabledStyle(!ok) }} disabled={!ok}
         onClick={() => onConfirm(pot, a, dir)}>Move</button>

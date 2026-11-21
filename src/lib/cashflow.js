@@ -119,9 +119,20 @@ export const potBalance = (s, potId) =>
 export const potName = (s, potId) =>
   potId === 'emergency' ? 'Emergency Pocket' : `${s.bills.find((b) => b.id === potId)?.name} Pocket`;
 
+// Most that can go into a pocket: a bill pocket only takes what the bill still needs.
+export function roomInPot(s, potId) {
+  if (potId === 'emergency') return Infinity;
+  const b = s.bills.find((x) => x.id === potId);
+  return b ? Math.max(0, r2(b.amount - b.saved)) : 0;
+}
+
+// How much can be moved in this direction right now.
+export const moveAvailable = (s, potId, direction) =>
+  direction === 'back' ? potBalance(s, potId) : Math.min(s.spendable, roomInPot(s, potId));
+
 // direction 'back' = pocket -> Main Account, 'into' = Main Account -> pocket
 export function moveMoney(s, potId, amount, direction) {
-  const avail = direction === 'back' ? potBalance(s, potId) : s.spendable;
+  const avail = moveAvailable(s, potId, direction);
   if (!(amount > 0) || amount > avail) return s;
   const sign = direction === 'back' ? 1 : -1;
   const next = {
@@ -159,10 +170,11 @@ export function nextDay(s) {
   const paid = [];
   for (const b of next.bills.filter((x) => x.due === 0)) {
     const fromPot = Math.min(b.saved, b.amount);
+    const leftover = r2(b.saved - fromPot); // anything extra in the pocket goes back to Main
     const fromMain = r2(Math.min(b.amount - fromPot, next.spendable));
     const short = r2(b.amount - fromPot - fromMain);
     const amountPaid = r2(fromPot + fromMain);
-    next = { ...next, spendable: r2(next.spendable - fromMain) };
+    next = { ...next, spendable: r2(next.spendable - fromMain + leftover) };
     next = log(next, {
       title: amountPaid === 0 ? `${b.name} not paid` : short > 0 ? `${b.name} only partly paid` : `${b.name} paid`,
       detail:
