@@ -73,7 +73,12 @@ export default function App() {
           const { next, paid } = nextDay(state);
           setState(next);
           close();
-          toast(paid.length ? `${paid.map((b) => b.name).join(', ')} paid today` : 'A day has passed');
+          const short = paid.filter((b) => b.short > 0);
+          toast(
+            short.length
+              ? `${short.map((b) => `${b.name} is ${money(b.short)} short`).join(', ')}`
+              : paid.length ? `${paid.map((b) => b.name).join(', ')} paid today` : 'A day has passed'
+          );
         }}
         onReset={() => { setState(initialState()); setScreen('home'); close(); toast('Reset'); }} />
     );

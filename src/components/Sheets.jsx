@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import Sheet, { Seg, LockNote } from './Sheet.jsx';
 import {
-  money, r2, allocate, potBalance, potName, pocketsTotal, MAIN_ACCOUNT_MASKED,
+  money, r2, allocate, extraMoney, potBalance, potName, pocketsTotal, MAIN_ACCOUNT_MASKED,
 } from '../lib/cashflow.js';
 
 const num = (v) => r2(Number(v || 0));
@@ -32,7 +32,7 @@ export function BreakdownSheet({ result: res, source, minimum, share, onClose, o
       </div>
       <div className="why">
         {aside > 0 ? (
-          <>You had {money(res.before)}. Now you have {money(res.total)}, which is {money(res.extra)} more than your {money(minimum)} minimum. That's your <b>extra money</b>. {Math.round(share * 100)}% of it ({money(aside)}) went into your pockets, bills first.</>
+          <>You had {money(res.before)}. Now you have {money(res.total)}. {res.extra === res.payout ? 'All' : money(res.extra)} of this payout{res.extra === res.payout ? ' is' : ' lands'} above your {money(minimum)} minimum. That's your <b>extra money</b>. {Math.round(share * 100)}% of it ({money(aside)}) went into your pockets, bills first.</>
         ) : (
           <>You now have {money(res.total)}, which isn't above your {money(minimum)} minimum, so it all stays spendable today.</>
         )}
@@ -154,7 +154,7 @@ export function RuleSheet({ state, onClose, onSave }) {
   const [min, setMin] = useState(state.minimum);
   const [share, setShare] = useState(state.share);
   const ex = 120;
-  const sa = r2(Math.max(0, state.spendable + ex - min) * share);
+  const sa = r2(extraMoney({ ...state, minimum: min }, ex) * share);
   return (
     <Sheet onClose={onClose}>
       <h3>My rule</h3>

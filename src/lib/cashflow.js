@@ -46,11 +46,17 @@ export function nextBill(s) {
   return byDue(s.bills.filter((b) => b.saved < b.amount))[0] || null;
 }
 
+// Part of a payout above the minimum (never more than the payout itself).
+export const extraMoney = (s, payout) =>
+  r2(Math.min(payout, Math.max(0, s.spendable + payout - s.minimum)));
+
 // How a payout would be split, without changing state.
 export function allocate(s, payout) {
   const before = s.spendable;
   const total = r2(before + payout);
-  const extra = Math.max(0, r2(total - s.minimum));
+  // Only the part of this payout that lands above the minimum is extra money.
+  // Money already in the Main Account is never pulled into pockets.
+  const extra = extraMoney(s, payout);
   let left = r2(extra * s.share);
   const toBills = [];
   for (const b of byDue(s.bills)) {
@@ -74,7 +80,7 @@ export function payoutToCover(s, bill) {
     if (b.id === bill.id) break;
   }
   if (needed <= 0) return 0;
-  return Math.max(0, r2(needed / s.share + s.minimum - s.spendable));
+  return r2(needed / s.share + Math.max(0, s.minimum - s.spendable));
 }
 
 function log(s, entry) {
@@ -145,23 +151,32 @@ export function setRule(s, minimum, share) {
   return { ...s, minimum, share };
 }
 
-// Moves the demo one day forward. Bills that reach day 0 are paid from their pocket first.
+// Moves the demo one day forward. Bills that reach day 0 are paid from their pocket first,
+// then from the Main Account. The Main Account never goes below S$0: if both together
+// can't cover the bill, it is paid as far as possible and the shortfall is shown.
 export function nextDay(s) {
   let next = { ...s, bills: s.bills.map((b) => ({ ...b, due: Math.max(0, b.due - 1) })) };
-  const paid = next.bills.filter((b) => b.due === 0);
-  for (const b of paid) {
+  const paid = [];
+  for (const b of next.bills.filter((x) => x.due === 0)) {
     const fromPot = Math.min(b.saved, b.amount);
-    const fromMain = r2(b.amount - fromPot);
+    const fromMain = r2(Math.min(b.amount - fromPot, next.spendable));
+    const short = r2(b.amount - fromPot - fromMain);
+    const amountPaid = r2(fromPot + fromMain);
     next = { ...next, spendable: r2(next.spendable - fromMain) };
     next = log(next, {
-      title: `${b.name} paid`,
+      title: amountPaid === 0 ? `${b.name} not paid` : short > 0 ? `${b.name} only partly paid` : `${b.name} paid`,
       detail:
-        fromMain > 0
-          ? `${money(fromPot)} from pocket, ${money(fromMain)} from Main Account`
-          : 'Paid in full from its pocket',
-      amount: b.amount,
+        amountPaid === 0
+          ? `${money(short)} short · nothing set aside and Main Account is empty`
+          : short > 0
+          ? `${money(short)} short · ${money(fromPot)} from pocket, ${money(fromMain)} from Main Account`
+          : fromMain > 0
+            ? `${money(fromPot)} from pocket, ${money(fromMain)} from Main Account`
+            : 'Paid in full from its pocket',
+      amount: amountPaid,
       sign: '−',
     });
+    paid.push({ ...b, short });
   }
   return { next: { ...next, bills: next.bills.filter((b) => b.due > 0) }, paid };
 }
