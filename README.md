@@ -6,8 +6,6 @@ A clickable prototype of **CashFlow**, a bill-readiness feature embedded in a di
 
 > Concept prototype with **simulated money**. Not affiliated with or endorsed by GXS Bank. No real accounts, logins or payments.
 
-**Live demo:** https://bakudekuslimeyuu.github.io/cashflow-prototype/
-
 ## The rule
 
 1. Keep a minimum in the Main Account to spend (default S$150).
@@ -41,4 +39,4 @@ npm run build    # production build in dist/
 
 - `src/lib/cashflow.js` – the allocation rule and state changes (pure JavaScript, tested in `cashflow.test.js`)
 - `src/components/` – Home screen, CashFlow screen and the bottom sheets
-- `.github/workflows/deploy.yml` – builds and deploys to GitHub Pages on every push to `main`
+- `netlify.toml` – Netlify build settings (`npm run build`, publishes `dist/`)

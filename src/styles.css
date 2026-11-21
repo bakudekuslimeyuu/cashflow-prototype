@@ -11,6 +11,8 @@
   @media(min-width:500px){ body{padding:24px 0} .phone{min-height:820px;height:820px;border-radius:36px;box-shadow:0 0 0 10px #1b1630,0 30px 80px rgba(0,0,0,.6)} }
   .concept{background:#000;color:#9c95b8;font-size:10.5px;text-align:center;padding:6px 10px;letter-spacing:.2px}
   .screen{flex:1;overflow-y:auto;padding-bottom:150px;background:linear-gradient(180deg,#2a1466 0%,var(--bg) 210px)}
+  .screen,.sheet{scrollbar-width:none;-ms-overflow-style:none}
+  .screen::-webkit-scrollbar,.sheet::-webkit-scrollbar{display:none}
   .hidden{display:none!important}
   button{font:inherit;cursor:pointer;border:0;background:none;color:inherit}
   .num{font-variant-numeric:tabular-nums}
