@@ -1,6 +1,19 @@
 import { money, days, nextBill, payoutToCover, pocketsTotal, billsSaved } from '../lib/cashflow.js';
 import { LockNote } from './Sheet.jsx';
 import { TxList } from './TxList.jsx';
+import Icon from './Icon.jsx';
+
+// Calendar chip for a bill due in n days.
+function DateChip({ inDays }) {
+  const d = new Date();
+  d.setDate(d.getDate() + inDays);
+  return (
+    <div className="date" aria-hidden="true">
+      <b>{d.getDate()}</b>
+      <small>{d.toLocaleString('en-SG', { month: 'short' })}</small>
+    </div>
+  );
+}
 
 // The CashFlow feature screen inside the GXS app.
 export default function CashFlowScreen({ state, onBack, onMove, onRule, onExtra }) {
@@ -8,27 +21,27 @@ export default function CashFlowScreen({ state, onBack, onMove, onRule, onExtra 
   const pockets = pocketsTotal(state);
 
   let warn;
-  if (state.bills.length === 0) warn = { ok: true, icon: '✓', title: 'No bills coming up', text: 'Nothing needs setting aside right now.' };
-  else if (!nb) warn = { ok: true, icon: '✓', title: "You're ready for your bills", text: 'Every upcoming bill is fully set aside.' };
+  if (state.bills.length === 0) warn = { ok: true, icon: 'check', title: 'No bills coming up', text: 'Nothing needs setting aside right now.' };
+  else if (!nb) warn = { ok: true, icon: 'check', title: "You're ready for your bills", text: 'Every upcoming bill is fully set aside.' };
   else {
     const short = nb.amount - nb.saved;
     const p = payoutToCover(state, nb);
     warn =
       nb.due <= 5
-        ? { ok: false, icon: '⚠️', title: `${nb.name} is ${money(short)} short, due in ${days(nb.due)}`, text: `A payout of ${money(p)} or more covers it. Or set it aside now with Move money.` }
-        : { ok: true, icon: 'ℹ️', title: `Next: ${nb.name} in ${days(nb.due)}`, text: `${money(short)} still to set aside. A payout of ${money(p)} or more covers it.` };
+        ? { ok: false, icon: 'alert', title: `${nb.name} is ${money(short)} short, due in ${days(nb.due)}`, text: `A payout of ${money(p)} or more covers it. Or set it aside now with Move money.` }
+        : { ok: true, icon: 'info', title: `Next: ${nb.name} in ${days(nb.due)}`, text: `${money(short)} still to set aside. A payout of ${money(p)} or more covers it.` };
   }
 
   return (
     <div className="screen">
       <div className="head">
-        <button className="ib" onClick={onBack} aria-label="Back">‹</button>
+        <button className="ib" onClick={onBack} aria-label="Back"><Icon name="back" size={22} /></button>
         <div className="t">CashFlow</div>
-        <span className="ib bell" style={{ fontSize: 18, cursor: 'pointer' }} onClick={() => onExtra('Notifications')}>🔔︎</span>
+        <button className="ib bell" aria-label="Notifications" onClick={() => onExtra('Notifications')}><Icon name="bell" /></button>
       </div>
       <div className="wrap">
         <div className="card">
-          <div className="cap">Safe to spend · Main Account</div>
+          <div className="cap">Safe to spend in your Main Account</div>
           <div className="big num" style={{ fontSize: 30, fontWeight: 700, marginTop: 3 }}>{money(state.spendable)}</div>
           <div className="sub">
             {state.spendable < state.minimum
@@ -37,34 +50,42 @@ export default function CashFlowScreen({ state, onBack, onMove, onRule, onExtra 
           </div>
         </div>
         <div className="gap" />
-        <div className={'warn' + (warn.ok ? ' ok' : '')}>
-          <span>{warn.icon}</span>
+        <div className={'warn' + (warn.ok ? ' ok' : '')} role="status">
+          <Icon name={warn.icon} />
           <div><b>{warn.title}</b>{warn.text}</div>
         </div>
         <div className="gap" />
         <div className="two">
-          <button className="btnc" onClick={() => onMove()}><div className="c">⇄</div>Move money</button>
-          <button className="btnc" onClick={onRule}><div className="c">⚙</div>My rule</button>
+          <button className="btnc" onClick={() => onMove()}><div className="c"><Icon name="move" /></div>Move money</button>
+          <button className="btnc" onClick={onRule}><div className="c"><Icon name="rule" /></div>My rule</button>
         </div>
         <div className="gap" />
         <div className="card">
-          <div className="sum"><b>Bill Pockets</b><span className="muted num">{money(billsSaved(state))}</span></div>
+          <div className="sum"><b>Bill Pockets</b><span className="muted num">{money(billsSaved(state))} set aside</span></div>
           {state.bills.length === 0 && <div className="sub">No bills coming up.</div>}
           {[...state.bills].sort((a, b) => a.due - b.due).map((b) => {
             const pct = Math.min(100, (b.saved / b.amount) * 100);
-            const late = b.saved < b.amount && b.due <= 5;
+            const full = b.saved >= b.amount;
+            const late = !full && b.due <= 5;
             return (
-              <div className="pk" key={b.id} style={{ cursor: 'pointer' }}
+              <button className="pk" key={b.id}
+                aria-label={`${b.name}, ${money(b.saved)} of ${money(b.amount)} set aside, due in ${days(b.due)}`}
                 onClick={() => onMove(b.id, b.saved > 0 ? 'back' : 'into')}>
-                <div className="r"><span>{b.name}</span><span className="num">{money(b.saved)} / {money(b.amount)}</span></div>
-                <div className={'bar' + (late ? ' w' : '')}><i style={{ width: pct + '%' }} /></div>
-                <div className="m"><span>{Math.floor(pct)}%</span><span>{b.saved >= b.amount ? `Covered ✓ · due in ${days(b.due)}` : `Due in ${days(b.due)}`}</span></div>
-              </div>
+                <DateChip inDays={b.due} />
+                <div className="pkb">
+                  <div className="r"><span>{b.name}</span><span className="num">{money(b.saved)} / {money(b.amount)}</span></div>
+                  <div className={'bar' + (late ? ' w' : '')}><i style={{ width: pct + '%' }} /></div>
+                  <div className="m">
+                    <span>{Math.floor(pct)}%</span>
+                    <span className={full ? 'okt' : late ? 'wt' : ''}>{full ? `Covered, due in ${days(b.due)}` : `Due in ${days(b.due)}`}</span>
+                  </div>
+                </div>
+              </button>
             );
           })}
         </div>
         <div className="gap" />
-        <div className="card" style={{ cursor: 'pointer' }} onClick={() => onMove('emergency', 'back')}>
+        <div className="card" style={{ cursor: 'pointer' }} role="button" tabIndex={0} onClick={() => onMove('emergency', 'back')}>
           <div className="sum"><b>Emergency Pocket</b><span className="num" style={{ fontWeight: 700 }}>{money(state.emergency)}</span></div>
           <LockNote />
           <div className="link" style={{ marginTop: 8 }}>Move money ›</div>

@@ -1,3 +1,5 @@
+import Icon from './Icon.jsx';
+
 // Bottom sheet used for every pop-up in the prototype.
 export default function Sheet({ onClose, children }) {
   return (
@@ -23,5 +25,5 @@ export function Seg({ options, value, onChange, cols }) {
 }
 
 export const LockNote = () => (
-  <div className="lock">🔓 <span>It's still your money. You can move it back any time.</span></div>
+  <div className="lock"><Icon name="unlock" size={15} /><span>It's still your money. You can move it back any time.</span></div>
 );

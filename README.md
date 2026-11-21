@@ -20,7 +20,6 @@ Example: S$130 in the Main Account + a S$120 payout → S$200 stays spendable, S
 - **Add Money** (Grab earnings or PayNow) and see the split before and after.
 - **Early warning** on the home screen and in CashFlow: which bill, how short, and the payout that covers it.
 - **Move money** back to the Main Account, or into a pocket. Tap any pocket to start.
-- **Send Money** more than you have, to see the "move some back first" prompt.
 - **My rule**: change the minimum and the share.
 - **▶ Demo** (for presenters): simulate payouts, spending, the next day, or reset.
 

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import Sheet, { Seg, LockNote } from './Sheet.jsx';
 import {
-  money, r2, allocate, extraMoney, moveAvailable, roomInPot, potName, pocketsTotal, MAIN_ACCOUNT_MASKED,
+  money, r2, allocate, extraMoney, moveAvailable, roomInPot, potName, MAIN_ACCOUNT_MASKED,
 } from '../lib/cashflow.js';
 
 const num = (v) => r2(Number(v || 0));
@@ -80,39 +80,6 @@ export function AddMoneySheet({ state, onClose, onConfirm }) {
   );
 }
 
-// ---------- Send Money ----------
-export function SendMoneySheet({ state, onClose, onConfirm, onMoveBack }) {
-  const [to, setTo] = useState('Petrol station');
-  const [amt, setAmt] = useState('');
-  const a = num(amt);
-  const over = a > state.spendable;
-  const ok = a > 0 && !over;
-  return (
-    <Sheet onClose={onClose}>
-      <h3>Send Money</h3>
-      <div className="lead">Pays from your Main Account. Money in your pockets stays put.</div>
-      <label className="f">To</label>
-      <select value={to} onChange={(e) => setTo(e.target.value)}>
-        {['Petrol station', 'Hawker centre', 'Friend (PayNow)', 'Vehicle rental company'].map((x) => <option key={x}>{x}</option>)}
-      </select>
-      <label className="f">Amount (S$)</label>
-      <input type="number" min="0" step="1" inputMode="decimal" placeholder="0" value={amt} onChange={(e) => setAmt(e.target.value)} />
-      <div className="hint">
-        {over ? (
-          pocketsTotal(state) > 0 ? (
-            <>You have {money(state.spendable)} safe to spend. {money(pocketsTotal(state))} is in your pockets:{' '}
-              <button className="qlink" onClick={onMoveBack}>move some back first</button>.</>
-          ) : (
-            <>You only have {money(state.spendable)} safe to spend, and your pockets are empty.</>
-          )
-        ) : `Safe to spend: ${money(state.spendable)}`}
-      </div>
-      <button className="btn" style={{ marginTop: 16, ...disabledStyle(!ok) }} disabled={!ok}
-        onClick={() => onConfirm(a, to)}>Send</button>
-    </Sheet>
-  );
-}
-
 // ---------- Move money between Main Account and pockets ----------
 export function MoveSheet({ state, preset, presetDir, onClose, onConfirm }) {
   const pots = ['emergency', ...state.bills.map((b) => b.id)];
@@ -151,7 +118,7 @@ export function MoveSheet({ state, preset, presetDir, onClose, onConfirm }) {
       <button className="btn" style={{ marginTop: 16, ...disabledStyle(!ok) }} disabled={!ok}
         onClick={() => onConfirm(pot, a, dir)}>Move</button>
       <div className="hint" style={{ textAlign: 'center', marginTop: 12 }}>
-        Need to pay another bank? Move money back to your Main Account, then use <b style={{ color: '#fff' }}>Send Money</b>.
+        Moving is instant and stays inside your GXS Savings Account.
       </div>
     </Sheet>
   );
@@ -207,7 +174,7 @@ export function DemoSheet({ onClose, onPayout, onSpend, onNextDay, onReset }) {
         <div className="grid">
           <button onClick={onSpend}>Spend S$30<small>Petrol &amp; food</small></button>
           <button onClick={onNextDay}>Next day<small>Bills get 1 day closer</small></button>
-          <button style={{ gridColumn: 'span 2' }} onClick={onReset}>Reset to start<small>S$130 in Main Account · phone bill S$10 due in 4 days</small></button>
+          <button style={{ gridColumn: 'span 2' }} onClick={onReset}>Reset to start<small>S$130 in Main Account, phone bill S$10 due in 4 days</small></button>
         </div>
       </div>
     </Sheet>

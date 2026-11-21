@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import HomeScreen from './components/HomeScreen.jsx';
+import Icon from './components/Icon.jsx';
 import CashFlowScreen from './components/CashFlowScreen.jsx';
 import {
-  AddMoneySheet, BreakdownSheet, DemoSheet, MoveSheet, RuleSheet, SendMoneySheet,
+  AddMoneySheet, BreakdownSheet, DemoSheet, MoveSheet, RuleSheet,
 } from './components/Sheets.jsx';
 import {
   initialState, allocate, applyPayout, moveMoney, sendMoney, setRule, nextDay, money, potName,
@@ -24,10 +25,6 @@ export default function App() {
 
   const close = () => setSheet(null);
   const notInPrototype = (what) => toast(`${what} isn't part of this prototype`);
-  // Pocket with the most money in it, for "move some back first".
-  const fullestPot = (s) =>
-    [{ id: 'emergency', v: s.emergency }, ...s.bills.map((b) => ({ id: b.id, v: b.saved }))]
-      .reduce((a, b) => (b.v > a.v ? b : a)).id;
 
   const payout = (amount, source = 'Grab earnings cash-out') => {
     const result = allocate(state, amount);
@@ -42,11 +39,6 @@ export default function App() {
   let sheetEl = null;
   if (sheet?.type === 'add')
     sheetEl = <AddMoneySheet state={state} onClose={close} onConfirm={(a, src) => payout(a, src)} />;
-  if (sheet?.type === 'send')
-    sheetEl = (
-      <SendMoneySheet state={state} onClose={close} onMoveBack={() => openMove(fullestPot(state), 'back')}
-        onConfirm={(a, to) => { setState((s) => sendMoney(s, a, to)); close(); toast(`${money(a)} sent to ${to}`); }} />
-    );
   if (sheet?.type === 'move')
     sheetEl = (
       <MoveSheet key={sheet.preset + sheet.presetDir} state={state} preset={sheet.preset} presetDir={sheet.presetDir} onClose={close}
@@ -80,7 +72,7 @@ export default function App() {
           close();
           toast(
             paid.length
-              ? paid.map((b) => (b.short > 0 ? `${b.name}: ${money(b.short)} short` : `${b.name} paid`)).join(' · ')
+              ? paid.map((b) => (b.short > 0 ? `${b.name}: ${money(b.short)} short` : `${b.name} paid`)).join(', ')
               : 'A day has passed'
           );
         }}
@@ -90,14 +82,14 @@ export default function App() {
   return (
     <div className="phone">
       <div className="concept">
-        Concept prototype by IS419 Team 7 · simulated money · not affiliated with or endorsed by GXS Bank
+        Concept prototype by IS419 Team 7. Simulated money. Not affiliated with or endorsed by GXS Bank.
       </div>
 
       {screen === 'home' ? (
         <HomeScreen state={state}
           onOpenCashFlow={() => setScreen('cashflow')}
           onAdd={() => setSheet({ type: 'add' })}
-          onSend={() => setSheet({ type: 'send' })}
+          onSend={() => notInPrototype('Send Money')}
           onScan={() => notInPrototype('Scan QR')}
           onExtra={notInPrototype} />
       ) : (
@@ -109,19 +101,12 @@ export default function App() {
       )}
 
       <nav className="nav">
-        <div className="on" onClick={() => setScreen('home')}><span>⌂</span>Home</div>
-        <div onClick={() => notInPrototype('Odyssey')}><span>⟰</span>Odyssey</div>
-        <div onClick={() => notInPrototype('Me')}>
-          <span>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-              <circle cx="12" cy="8" r="4" /><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6" />
-            </svg>
-          </span>
-          Me
-        </div>
+        <div className="on" onClick={() => setScreen('home')}><Icon name="home" size={22} />Home</div>
+        <div onClick={() => notInPrototype('Odyssey')}><Icon name="compass" size={22} />Odyssey</div>
+        <div onClick={() => notInPrototype('Me')}><Icon name="user" size={22} />Me</div>
       </nav>
 
-      <button className="demo-toggle" onClick={() => setSheet({ type: 'demo' })}>▶ Demo</button>
+      <button className="demo-toggle" onClick={() => setSheet({ type: 'demo' })}>Demo controls</button>
       <div className={'toast' + (toastMsg ? ' show' : '')}>{toastMsg}</div>
       {sheetEl}
     </div>
